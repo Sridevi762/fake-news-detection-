@@ -111,7 +111,7 @@ Step 4: Open the browser and test the application.
 Due to GitHub file size limitations, the trained model files are stored in Google Drive.
 
 Download them here:
-(Add Google Drive link here)
+https://drive.google.com/drive/folders/1xyKHuBo83VmPWV2W9s7wwGG0jdoH3Yuv?usp=drive_link
 
 After downloading, place the files inside the project folder before running the application.
 
