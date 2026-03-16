@@ -1,9 +1,11 @@
 import streamlit as st
-import joblib
 import pandas as pd
 
+# Import functions from backend
+from backend import load_model, predict_single, predict_from_url, predict_batch
+
 # ===============================
-# Page Config
+# PAGE CONFIG
 # ===============================
 st.set_page_config(
     page_title="Fake News Detection System",
@@ -12,26 +14,25 @@ st.set_page_config(
 )
 
 # ===============================
-# Load Model (Cached for Speed)
+# LOAD MODEL
 # ===============================
-@st.cache_resource
-def load_model():
-    model = joblib.load("fake_news_model.pkl")
-    vectorizer = joblib.load("tfidf_vectorizer.pkl")
-    return model, vectorizer
-
 model, vectorizer = load_model()
 
 # ===============================
-# Header
+# HEADER
 # ===============================
 st.title("📰 Fake News Detection System")
 st.caption("AI-based system to verify news authenticity")
 
-tab1, tab2 = st.tabs(["🔍 Single News", "📂 Batch CSV"])
+# Tabs
+tab1, tab2, tab3 = st.tabs([
+    "🔍 Single News",
+    "🌐 URL News",
+    "📂 Batch CSV"
+])
 
 # ===============================
-# SINGLE NEWS
+# SINGLE NEWS PREDICTION
 # ===============================
 with tab1:
 
@@ -41,59 +42,82 @@ with tab1:
 
         if news.strip() == "":
             st.warning("Please enter some news text.")
+
         else:
-            # Transform
-            input_vector = vectorizer.transform([news])
-
-            # Predict
-            prediction = model.predict(input_vector)[0]
-            probability = model.predict_proba(input_vector)[0]
-
-            confidence = max(probability) * 100
+            label, confidence = predict_single(news, model, vectorizer)
 
             st.subheader("Result")
 
-            if prediction == 1:
-                st.success("✅ REAL NEWS")
+            if "REAL" in label:
+                st.success(label)
             else:
-                st.error("❌ FAKE NEWS")
+                st.error(label)
 
-            st.write(f"**Confidence:** {confidence:.2f}%")
+            st.write(f"Confidence: {confidence}%")
 
 # ===============================
-# BATCH CSV
+# URL NEWS PREDICTION
 # ===============================
 with tab2:
 
-    file = st.file_uploader("Upload CSV (must contain column name: text)", type=["csv"])
+    url = st.text_input("Enter news article URL")
+
+    if st.button("Analyze URL"):
+
+        if url.strip() == "":
+            st.warning("Please enter a URL")
+
+        else:
+            label, confidence = predict_from_url(url, model, vectorizer)
+
+            st.subheader("Result")
+
+            if "REAL" in label:
+                st.success(label)
+            elif "FAKE" in label:
+                st.error(label)
+            else:
+                st.warning(label)
+
+            if confidence != 0:
+                st.write(f"Confidence: {confidence}%")
+
+# ===============================
+# BATCH CSV PREDICTION
+# ===============================
+with tab3:
+
+    file = st.file_uploader(
+        "Upload CSV file (must contain column 'text')",
+        type=["csv"]
+    )
 
     if file:
+
         df = pd.read_csv(file)
 
-        if "text" not in df.columns:
-            st.error("CSV must contain 'text' column.")
-        else:
-            vectors = vectorizer.transform(df["text"])
-            predictions = model.predict(vectors)
+        try:
+            results = predict_batch(file, model, vectorizer)
 
-            df["prediction"] = predictions
-            df["prediction_label"] = df["prediction"].map({1: "REAL NEWS", 0: "FAKE NEWS"})
+            st.dataframe(results)
 
-            st.dataframe(df, use_container_width=True)
-
-            chart = df["prediction_label"].value_counts()
+            chart = results["prediction_label"].value_counts()
             st.bar_chart(chart)
 
-            csv = df.to_csv(index=False)
+            csv = results.to_csv(index=False)
+
             st.download_button(
-                "⬇️ Download Results",
+                "Download Results",
                 csv,
                 "results.csv",
                 "text/csv"
             )
 
+        except Exception as e:
+            st.error(str(e))
+
 # ===============================
-# Footer
+# FOOTER
 # ===============================
 st.markdown(
     "<center style='color:gray;'>© 2026 Fake News Detection System</center>",
