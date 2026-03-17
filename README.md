@@ -104,7 +104,7 @@ Step 4: Open the browser and test the application.
 
 🎥 Demo Video
 
-(Add your project demo video link here)
+https://drive.google.com/drive/folders/1-JZbD0kScUw9OmAKSuTFVhcwNod09-N_?usp=drive_link
 
 📦 Model Files
 
